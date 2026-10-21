@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#46b4ff">
+  <title>Şişe Vurma</title>
+  <style>
+    @font-face {
+      font-family: 'Baloo2';
+      font-weight: 800;
+      font-style: normal;
+      font-display: block;
+      src: url('assets/fonts/Baloo2-ExtraBold.woff') format('woff');
+    }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none;
+      /* tuvalin yanında kalan boşluk (letterbox) gökyüzü/çimen renginde görünsün */
+      background: linear-gradient(to bottom, #46b4ff 0%, #8dd8ff 42%, #f2fdff 86%, #5fd13a 86.4%, #2f9a2a 100%);
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent; touch-action: none;
+      font-family: Baloo2, 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
+    }
+    #game { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #game canvas { display: block; touch-action: none; }
+
+    /* Dikey tutulunca uyarı */
+    #rotate { position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column; align-items: center;
+      justify-content: center; gap: 22px; background: #1b3b6b; color: #fff; text-align: center; padding: 24px; }
+    body.portrait #rotate { display: flex; }
+    #rotate .phone { width: 74px; height: 124px; border: 8px solid #fff; border-radius: 16px; position: relative;
+      animation: spin 2.4s ease-in-out infinite; }
+    #rotate .phone::after { content: ''; position: absolute; left: 50%; bottom: 8px; width: 18px; height: 5px;
+      margin-left: -9px; border-radius: 3px; background: #fff; }
+    @keyframes spin { 0%, 15% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+    #rotate p { margin: 0; font-size: 26px; line-height: 1.25; }
+    #rotate button { font: inherit; font-size: 20px; padding: 10px 22px; border-radius: 999px; border: 3px solid #fff;
+      background: transparent; color: #fff; }
+
+    /* Sahte (test) reklam ekranı */
+    #mockad { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+      background: rgba(5, 15, 40, .88); }
+    #mockad[hidden] { display: none; }
+    .ad-box { width: min(560px, 92vw); max-height: 92vh; overflow: auto; box-sizing: border-box; text-align: center; color: #16407f;
+      background: linear-gradient(#fffdf2, #ffeec4); border: 6px solid #16407f; border-radius: 28px; padding: 22px 26px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .45); }
+    .ad-badge { display: inline-block; background: #c8181f; color: #fff; font-size: 18px; padding: 3px 14px; border-radius: 999px; letter-spacing: 1px; }
+    .ad-art { display: flex; justify-content: center; gap: 12px; margin: 16px 0 6px; }
+    .ad-art i { width: 44px; height: 70px; border-radius: 14px 14px 18px 18px; border: 4px solid #16407f; background: linear-gradient(#ff7a7a, #c8181f); }
+    .ad-art i:nth-child(2) { background: linear-gradient(#8dbbff, #1646b8); }
+    .ad-art i:nth-child(3) { background: linear-gradient(#9bf0a6, #128a2a); }
+    .ad-title { font-size: 30px; line-height: 1.1; }
+    .ad-note { font-size: 16px; opacity: .75; margin: 4px 0 12px; }
+    .ad-count { font-size: 24px; margin-bottom: 8px; }
+    .ad-bar { height: 16px; border-radius: 99px; background: #d9e3f2; border: 3px solid #16407f; overflow: hidden; margin-bottom: 16px; }
+    .ad-bar span { display: block; height: 100%; width: 0; background: linear-gradient(#ffd21f, #ff8a1f); }
+    .ad-close, .ad-claim { font: inherit; font-size: 22px; border: 4px solid #16407f; border-radius: 16px; padding: 10px 20px; cursor: pointer; width: 100%; }
+    .ad-close { background: #e3ebf5; color: #16407f; }
+    .ad-claim { background: linear-gradient(#b4ff6e, #2a9a2e); color: #12501a; }
+    .ad-claim[hidden], .ad-close[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="rotate">
+    <div class="phone"></div>
+    <p>Daha iyi oynamak için<br>telefonunu yatay çevir</p>
+    <button id="rotate-skip" type="button">Yine de oyna</button>
+  </div>
+
+  <div id="mockad" hidden></div>
+
+  <!-- Reklam yapılandırması (gerçek kimlikler yalnızca burada) -->
+  <script src="config/ads.config.js"></script>
+
+  <!-- Phaser 3 -->
+  <script src="lib/phaser.min.js"></script>
+
+  <!-- Çekirdek mantık -->
+  <script src="src/core/util.js"></script>
+  <script src="src/core/storage.js"></script>
+  <script src="src/core/audio.js"></script>
+  <script src="src/core/shapes.js"></script>
+  <script src="src/core/levels.js"></script>
+  <script src="src/core/state.js"></script>
+  <script src="src/core/ads.js"></script>
+
+  <!-- Fizik -->
+  <script src="src/game/physics.js"></script>
+
+  <!-- Görseller (hepsi kodla çizilir) -->
+  <script src="src/gfx/textures-world.js"></script>
+  <script src="src/gfx/bottle-art.js"></script>
+  <script src="src/gfx/textures-items.js"></script>
+  <script src="src/gfx/bottle.js"></script>
+  <script src="src/game/fx.js"></script>
+
+  <!-- Arayüz -->
+  <script src="src/ui/ui.js"></script>
+  <script src="src/ui/hud.js"></script>
+  <script src="src/ui/panels.js"></script>
+  <script src="src/ui/mockad.js"></script>
+
+  <!-- Oyun nesneleri ve sahneler -->
+  <script src="src/game/sling.js"></script>
+  <script src="src/game/aim.js"></script>
+  <script src="src/scenes/common.js"></script>
+  <script src="src/scenes/boot.js"></script>
+  <script src="src/scenes/menu.js"></script>
+  <script src="src/scenes/game.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
